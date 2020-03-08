@@ -2,6 +2,7 @@ package app
 
 import (
 	"testing"
+	"time"
 )
 
 func TestCreate(t *testing.T) {
@@ -14,9 +15,7 @@ func TestCreate(t *testing.T) {
 		want := uint64(1)
 		got := store.Create("", "", 0)
 
-		if want != got {
-			t.Errorf("want %d; got %d", want, got)
-		}
+		assertUint64(t, got, want)
 	})
 
 	t.Run("should return last possible ID", func(t *testing.T) {
@@ -28,9 +27,7 @@ func TestCreate(t *testing.T) {
 		want := uint64(91)
 		got := store.Create("", "", 0)
 
-		if want != got {
-			t.Errorf("want %d; got %d", want, got)
-		}
+		assertUint64(t, got, want)
 	})
 }
 
@@ -45,8 +42,97 @@ func TestGetBalance(t *testing.T) {
 		newAccID := store.Create("", "", 10)
 		got, _ := store.GetBalance(newAccID)
 
-		if want != got {
-			t.Errorf("want %d; got %d", want, got)
+		assertUint64(t, got, want)
+	})
+}
+
+func TestListAll(t *testing.T) {
+	t.Run("should return slice with all created accounts", func(t *testing.T) {
+		accs := map[uint64]Account{
+			1: {
+				ID:        1,
+				Name:      "Talita Barreto Coelho",
+				CPF:       "96097705840",
+				Balance:   7590000,
+				CreatedAt: time.Now(),
+			},
+			2: {
+				ID:        2,
+				Name:      "Maurício Ximenes Brito",
+				CPF:       "37320891697",
+				Balance:   290000,
+				CreatedAt: time.Now(),
+			},
+			3: {
+				ID:        3,
+				Name:      "Carolina Monteiro Hamada",
+				CPF:       "54009199520",
+				Balance:   15000,
+				CreatedAt: time.Now(),
+			},
+		}
+
+		store := &AccountStore{
+			maxID:       3,
+			dataStorage: accs,
+		}
+
+		accsList := store.ListAll()
+
+		for i, account := range accsList {
+			want := accs[uint64(i+1)]
+			got := account
+			if got != want {
+				t.Errorf("got %q; want %q", got, want)
+			}
 		}
 	})
+
+	t.Run("should return an ordered list of accounts", func(t *testing.T) {
+		accs := map[uint64]Account{
+			1: {
+				ID:        1,
+				Name:      "Talita Barreto Coelho",
+				CPF:       "96097705840",
+				Balance:   7590000,
+				CreatedAt: time.Now(),
+			},
+			2: {
+				ID:        2,
+				Name:      "Maurício Ximenes Brito",
+				CPF:       "37320891697",
+				Balance:   290000,
+				CreatedAt: time.Now(),
+			},
+			3: {
+				ID:        3,
+				Name:      "Carolina Monteiro Hamada",
+				CPF:       "54009199520",
+				Balance:   15000,
+				CreatedAt: time.Now(),
+			},
+		}
+
+		store := &AccountStore{
+			maxID:       uint64(len(accs)),
+			dataStorage: accs,
+		}
+
+		accsList := store.ListAll()
+
+		for i, account := range accsList {
+			want := store.dataStorage[uint64(i+1)].ID
+			got := account.ID
+			if got != want {
+				t.Errorf("couldn't return ordered account list. got %d, want %d", got, want)
+			}
+		}
+	})
+}
+
+func assertUint64(t *testing.T, got, want uint64) {
+	t.Helper()
+	if want != got {
+		t.Errorf("got %d; want %d", got, want)
+	}
 }
