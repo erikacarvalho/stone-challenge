@@ -47,37 +47,37 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestListAll(t *testing.T) {
+	accs := map[uint64]Account{
+		1: {
+			ID:        1,
+			Name:      "Talita Barreto Coelho",
+			CPF:       "96097705840",
+			Balance:   7590000,
+			CreatedAt: time.Now(),
+		},
+		2: {
+			ID:        2,
+			Name:      "Maurício Ximenes Brito",
+			CPF:       "37320891697",
+			Balance:   290000,
+			CreatedAt: time.Now(),
+		},
+		3: {
+			ID:        3,
+			Name:      "Carolina Monteiro Hamada",
+			CPF:       "54009199520",
+			Balance:   15000,
+			CreatedAt: time.Now(),
+		},
+	}
+
+	store := &AccountStore{
+		maxID:       uint64(len(accs)),
+		dataStorage: accs,
+	}
+
 	t.Run("should return slice with all created accounts", func(t *testing.T) {
-		accs := map[uint64]Account{
-			1: {
-				ID:        1,
-				Name:      "Talita Barreto Coelho",
-				CPF:       "96097705840",
-				Balance:   7590000,
-				CreatedAt: time.Now(),
-			},
-			2: {
-				ID:        2,
-				Name:      "Maurício Ximenes Brito",
-				CPF:       "37320891697",
-				Balance:   290000,
-				CreatedAt: time.Now(),
-			},
-			3: {
-				ID:        3,
-				Name:      "Carolina Monteiro Hamada",
-				CPF:       "54009199520",
-				Balance:   15000,
-				CreatedAt: time.Now(),
-			},
-		}
-
-		store := &AccountStore{
-			maxID:       3,
-			dataStorage: accs,
-		}
-
-		accsList := store.ListAll()
+		accsList, _ := store.ListAll()
 
 		for i, account := range accsList {
 			want := accs[uint64(i+1)]
@@ -89,36 +89,7 @@ func TestListAll(t *testing.T) {
 	})
 
 	t.Run("should return an ordered list of accounts", func(t *testing.T) {
-		accs := map[uint64]Account{
-			1: {
-				ID:        1,
-				Name:      "Talita Barreto Coelho",
-				CPF:       "96097705840",
-				Balance:   7590000,
-				CreatedAt: time.Now(),
-			},
-			2: {
-				ID:        2,
-				Name:      "Maurício Ximenes Brito",
-				CPF:       "37320891697",
-				Balance:   290000,
-				CreatedAt: time.Now(),
-			},
-			3: {
-				ID:        3,
-				Name:      "Carolina Monteiro Hamada",
-				CPF:       "54009199520",
-				Balance:   15000,
-				CreatedAt: time.Now(),
-			},
-		}
-
-		store := &AccountStore{
-			maxID:       uint64(len(accs)),
-			dataStorage: accs,
-		}
-
-		accsList := store.ListAll()
+		accsList, _ := store.ListAll()
 
 		for i, account := range accsList {
 			want := store.dataStorage[uint64(i+1)].ID

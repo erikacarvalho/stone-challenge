@@ -1,10 +1,15 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync/atomic"
 	"time"
+)
+
+var (
+	ErrNoRecords = errors.New("there are no accounts to be listed")
 )
 
 type AccountStore struct {
@@ -13,17 +18,21 @@ type AccountStore struct {
 }
 
 // ListAll returns all accounts from the store sorted.
-func (a *AccountStore) ListAll() []Account {
+func (a *AccountStore) ListAll() ([]Account, error) {
 	var accs []Account
 	for _, v := range a.dataStorage {
 		accs = append(accs, v)
+	}
+
+	if len(accs) == 0 {
+		return nil, ErrNoRecords
 	}
 
 	sort.Slice(accs, func(i, j int) bool {
 		return accs[i].ID < accs[j].ID
 	})
 
-	return accs
+	return accs, nil
 }
 
 // GetBalance returns balance for account with given ID
