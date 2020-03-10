@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -10,6 +9,7 @@ import (
 
 var (
 	ErrNoRecords = errors.New("there are no accounts to be listed")
+	ErrAccountNotFound = errors.New("there are no accounts with this ID")
 )
 
 type AccountStore struct {
@@ -40,8 +40,7 @@ func (a *AccountStore) ListAll() ([]Account, error) {
 func (a *AccountStore) GetBalance(ID uint64) (balance uint64, err error) {
 	acc, ok := a.dataStorage[ID]
 	if !ok {
-		err = fmt.Errorf("account %q not found", ID)
-		return
+		return 0, ErrAccountNotFound
 	}
 	return acc.Balance, nil
 }

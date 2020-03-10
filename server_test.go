@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -87,12 +88,7 @@ func TestAccounts(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		got := response.Result().Header.Get("content-type")
-		want := JsonContentType
-
-		if got != want {
-			t.Errorf("response did not have content-type of %v; got %v", want, got)
-		}
+		assertString(t, response.Result().Header.Get("content-type"), JsonContentType)
 	})
 
 	t.Run("should return method not allowed to methods other than GET and POST", func(t *testing.T) {
@@ -154,6 +150,76 @@ func TestAccounts(t *testing.T) {
 	})
 }
 
+
+func TestBalance(t *testing.T) {
+	t.Run("should return balance by account ID on GET", func(t *testing.T) {
+		acc1 := Account{
+			ID:        550,
+			Name:      "Bruna Carvalho Lemos",
+			CPF:       "21715382609",
+			Balance:   27380,
+			CreatedAt: time.Date(2020, time.February, 15, 8, 0, 0, 0, time.UTC),
+		}
+		accs := map[uint64]Account{
+			550: acc1,
+		}
+
+		store := &AccountStore{
+			maxID:       toPointer(len(accs)),
+			dataStorage: accs,
+		}
+		server := NewAccountServer(store)
+
+		request, _ := http.NewRequest(http.MethodGet, "/accounts/550/balance", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := `{"id":550,"balance":27380}`
+
+		assertResponseBody(t, got, want)
+		assertStatus(t, response.Code, http.StatusOK)
+		assertString(t, response.Result().Header.Get("content-type"), JsonContentType)
+	})
+
+	t.Run("should display error message if account ID is not found", func(t *testing.T) {
+		store := newStore(15)
+		server := NewAccountServer(store)
+
+		inexistentID := 97
+
+		request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/accounts/%v/balance", inexistentID), nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := fmt.Sprintf(`account %v not found`, inexistentID)
+
+		assertResponseBody(t, got, want)
+		assertStatus(t, response.Code, http.StatusNotFound)
+	})
+
+	t.Run("should display error message if account ID is invalid", func(t *testing.T) {
+		store := newStore(3007)
+		server := NewAccountServer(store)
+
+		invalidID := "ykjh"
+
+		request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/accounts/%v/balance", invalidID), nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := fmt.Sprintf(`account ID is invalid. ID given: %v`, invalidID)
+
+		assertResponseBody(t, got, want)
+		assertStatus(t, response.Code, http.StatusBadRequest)
+	})
+}
+
 func assertResponseBody(t *testing.T, got, want string) {
 	t.Helper()
 	if got != want {
@@ -165,6 +231,11 @@ func assertStatus(t *testing.T, got, want int) {
 	t.Helper()
 	if got != want {
 		t.Errorf("http status is incorrect. got %d; want %d", got, want)
+	}
+}
+func assertString(t *testing.T, got, want string) {
+	if got != want {
+		t.Errorf("got response %q; want %q", got, want)
 	}
 }
 
