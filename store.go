@@ -13,7 +13,7 @@ var (
 )
 
 type AccountStore struct {
-	maxID       uint64
+	maxID       *uint64
 	dataStorage map[uint64]Account // The map key is the account identifier
 }
 
@@ -48,7 +48,7 @@ func (a *AccountStore) GetBalance(ID uint64) (balance uint64, err error) {
 
 // Create is a method that creates an account and returns its ID.
 func (a *AccountStore) Create(name, CPF string, balance uint64) uint64 {
-	newID := atomic.AddUint64(&a.maxID, 1)
+	newID := atomic.AddUint64(a.maxID, 1)
 	a.dataStorage[newID] = Account{
 		ID:        newID,
 		Name:      name,
