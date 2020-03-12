@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	ErrNoRecords = errors.New("there are no accounts to be listed")
-	ErrAccountNotFound = errors.New("there are no accounts with this ID")
+	ErrNoRecords       = errors.New("there are no accounts to be listed")
+	ErrAccountNotFound = errors.New("there is no account with this ID")
 )
 
 type AccountStore struct {
@@ -17,8 +17,29 @@ type AccountStore struct {
 	dataStorage map[uint64]Account // The map key is the account identifier
 }
 
-// ListAll returns all accounts from the store sorted.
-func (a *AccountStore) ListAll() ([]Account, error) {
+func NewAccountStore(startingID *uint64) *AccountStore {
+	ns := &AccountStore{
+		maxID:       startingID,
+		dataStorage: make(map[uint64]Account),
+	}
+	return ns
+}
+
+// CreateAccount is a method that creates an account and returns its ID.
+func (a *AccountStore) CreateAccount(name, CPF string, balance uint64) uint64 {
+	newID := atomic.AddUint64(a.maxID, 1)
+	a.dataStorage[newID] = Account{
+		ID:        newID,
+		Name:      name,
+		CPF:       CPF,
+		Balance:   balance,
+		CreatedAt: time.Now(),
+	}
+	return newID
+}
+
+// ListAllAccounts returns all accounts from the account store sorted.
+func (a *AccountStore) ListAllAccounts() ([]Account, error) {
 	var accs []Account
 	for _, v := range a.dataStorage {
 		accs = append(accs, v)
@@ -45,15 +66,10 @@ func (a *AccountStore) GetBalance(ID uint64) (balance uint64, err error) {
 	return acc.Balance, nil
 }
 
-// Create is a method that creates an account and returns its ID.
-func (a *AccountStore) Create(name, CPF string, balance uint64) uint64 {
-	newID := atomic.AddUint64(a.maxID, 1)
-	a.dataStorage[newID] = Account{
-		ID:        newID,
-		Name:      name,
-		CPF:       CPF,
-		Balance:   balance,
-		CreatedAt: time.Now(),
+func (a *AccountStore) GetAccount(ID uint64) (Account, error) {
+	acc, ok := a.dataStorage[ID]
+	if !ok {
+		return Account{}, ErrAccountNotFound
 	}
-	return newID
+	return acc, nil
 }
