@@ -1,7 +1,8 @@
-package app
+package store
 
 import (
 	"errors"
+	app "github.com/erikacarvalho/stone-challenge"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -14,21 +15,29 @@ var (
 
 type AccountStore struct {
 	maxID       *uint64
-	dataStorage map[uint64]Account // The map key is the account identifier
+	dataStorage map[uint64]app.Account // The map key is the account identifier
 }
 
-func NewAccountStore(startingID *uint64) *AccountStore {
+func NewAccountStore(startingID *uint64, accounts ...app.Account) *AccountStore {
+	storage := make(map[uint64]app.Account)
+	for _, account := range accounts {
+		storage[account.ID] = account
+	}
 	ns := &AccountStore{
 		maxID:       startingID,
-		dataStorage: make(map[uint64]Account),
+		dataStorage: storage,
 	}
 	return ns
+}
+
+func (a *AccountStore) GetMaxID() uint64 {
+	return *a.maxID
 }
 
 // CreateAccount is a method that creates an account and returns its ID.
 func (a *AccountStore) CreateAccount(name, CPF string, balance uint64) (ID uint64, err error) {
 	newID := atomic.AddUint64(a.maxID, 1)
-	a.dataStorage[newID] = Account{
+	a.dataStorage[newID] = app.Account{
 		ID:        newID,
 		Name:      name,
 		CPF:       CPF,
@@ -39,8 +48,8 @@ func (a *AccountStore) CreateAccount(name, CPF string, balance uint64) (ID uint6
 }
 
 // ListAllAccounts returns all accounts from the account store sorted.
-func (a *AccountStore) ListAllAccounts() ([]Account, error) {
-	var accs []Account
+func (a *AccountStore) ListAllAccounts() ([]app.Account, error) {
+	var accs []app.Account
 	for _, v := range a.dataStorage {
 		accs = append(accs, v)
 	}
@@ -66,10 +75,14 @@ func (a *AccountStore) GetBalance(ID uint64) (balance uint64, err error) {
 	return acc.Balance, nil
 }
 
-func (a *AccountStore) GetAccount(ID uint64) (Account, error) {
+func (a *AccountStore) GetAccount(ID uint64) (app.Account, error) {
 	acc, ok := a.dataStorage[ID]
 	if !ok {
-		return Account{}, ErrAccountNotFound
+		return app.Account{}, ErrAccountNotFound
 	}
 	return acc, nil
+}
+
+func (a *AccountStore) SetAccount(account app.Account) {
+	a.dataStorage[account.ID] = account
 }

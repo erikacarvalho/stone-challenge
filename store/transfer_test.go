@@ -1,12 +1,13 @@
-package app
+package store
 
 import (
+	app "github.com/erikacarvalho/stone-challenge"
 	"testing"
 	"time"
 )
 
 func TestCreateTransfer(t *testing.T) {
-	store := NewTransferStore(startingID(67))
+	store := NewTransferStore(app.StartingID(67))
 
 	origin := uint64(7)
 	destination := uint64(30)
@@ -20,64 +21,65 @@ func TestCreateTransfer(t *testing.T) {
 
 	t.Run("should return new transfer ID based on origin and destination account ids and amount", func(t *testing.T) {
 		wantID, gotID := uint64(68), newTransferID
-		wantOriginID, gotOriginID := origin, store.dataStorage[newTransferID].AccountOriginID
-		wantDestinationID, gotDestinationID := destination, store.dataStorage[newTransferID].AccountDestinationID
-		wantAmount, gotAmount := amount, store.dataStorage[newTransferID].Amount
+		transfer, _ := store.GetTransfer(newTransferID)
+		wantOriginID, gotOriginID := origin, transfer.AccountOriginID
+		wantDestinationID, gotDestinationID := destination, transfer.AccountDestinationID
+		wantAmount, gotAmount := amount, transfer.Amount
 
-		assertUint64(t, gotID, wantID)
-		assertUint64(t, gotOriginID, wantOriginID)
-		assertUint64(t, gotDestinationID, wantDestinationID)
-		assertUint64(t, gotAmount, wantAmount)
+		app.AssertUint64(t, gotID, wantID)
+		app.AssertUint64(t, gotOriginID, wantOriginID)
+		app.AssertUint64(t, gotDestinationID, wantDestinationID)
+		app.AssertUint64(t, gotAmount, wantAmount)
 	})
 
 	t.Run("should create new transfer with status code Created", func(t *testing.T) {
-		want := toStatusMsg(StatusCreated)
+		want := ToStatusMsg(StatusCreated)
 		got := store.dataStorage[newTransferID].Status
 
-		assertString(t, got, want)
+		app.AssertString(t, got, want)
 	})
 }
 
 func TestConfirm(t *testing.T) {
 	t.Run("should change transfer status to Confirmed", func(t *testing.T) {
-		store := NewTransferStore(startingID(93))
+		store := NewTransferStore(app.StartingID(93))
 
 		newID, _ := store.CreateTransfer(15, 21, 7800)
 
 		store.Confirm(newID)
 
-		want := toStatusMsg(StatusConfirmed)
+		want := ToStatusMsg(StatusConfirmed)
 		got := store.dataStorage[newID].Status
 
-		assertString(t, got, want)
+		app.AssertString(t, got, want)
 	})
 }
 
 func TestCancel(t *testing.T) {
 	t.Run("should change transfer status to StatusCancelled", func(t *testing.T) {
-		store := NewTransferStore(startingID(800))
+		store := NewTransferStore(app.StartingID(800))
 
 		newID, _ := store.CreateTransfer(90, 2, 19000)
 
 		store.Cancel(newID)
 
-		want := toStatusMsg(StatusCancelled)
+		want := ToStatusMsg(StatusCancelled)
 		got := store.dataStorage[newID].Status
 
-		assertString(t, got, want)
+		app.AssertString(t, got, want)
 	})
 }
 
 func TestListAllTransfers(t *testing.T) {
 	t.Run("should return slice with all stored transfers", func(t *testing.T) {
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      78,
 				AccountDestinationID: 990,
 				Amount:               15000,
 				CreatedAt:            time.Date(2020, time.February, 15, 8, 0, 0, 0, time.UTC),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 			2: {
 				ID:                   2,
@@ -85,7 +87,7 @@ func TestListAllTransfers(t *testing.T) {
 				AccountDestinationID: 97,
 				Amount:               60000,
 				CreatedAt:            time.Date(2020, time.February, 16, 10, 0, 0, 0, time.UTC),
-				Status:               toStatusMsg(StatusNotAuthorized),
+				Status:               ToStatusMsg(StatusNotAuthorized),
 			},
 			3: {
 				ID:                   3,
@@ -93,12 +95,12 @@ func TestListAllTransfers(t *testing.T) {
 				AccountDestinationID: 97,
 				Amount:               5000,
 				CreatedAt:            time.Date(2020, time.February, 16, 19, 0, 0, 0, time.UTC),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
@@ -114,30 +116,30 @@ func TestListAllTransfers(t *testing.T) {
 	})
 
 	t.Run("should return ErrNoTransfers if there are no transfers", func(t *testing.T) {
-		store := NewTransferStore(startingID(0))
+		store := NewTransferStore(app.StartingID(0))
 
 		want := ErrNoTransfers
 		_, got := store.ListAllTransfers()
 
-		assertError(t, got, want)
+		app.AssertError(t, got, want)
 	})
 }
 
 func TestGetTransfer(t *testing.T) {
 	t.Run("should return Transfer for a given ID", func(t *testing.T) {
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			9: {
 				ID:                   9,
 				AccountOriginID:      55,
 				AccountDestinationID: 411,
 				Amount:               40000,
 				CreatedAt:            time.Date(2020, time.February, 9, 10, 0, 0, 0, time.UTC),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
@@ -150,12 +152,12 @@ func TestGetTransfer(t *testing.T) {
 	})
 
 	t.Run("should return ErrTransferNotFound when there is no account for given ID", func(t *testing.T) {
-		store := NewTransferStore(startingID(7))
+		store := NewTransferStore(app.StartingID(7))
 
 		want := ErrTransferNotFound
 		_, got := store.GetTransfer(167)
 
-		assertError(t, got, want)
+		app.AssertError(t, got, want)
 	})
 }
 
@@ -165,14 +167,14 @@ func TestChargeBack(t *testing.T) {
 	amount := uint64(15000)
 
 	t.Run("should indicate chargeback when threshold time is not over", func(t *testing.T) {
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      originID,
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 			2: {
 				ID:                   2,
@@ -180,12 +182,12 @@ func TestChargeBack(t *testing.T) {
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusAuthorizing),
+				Status:               ToStatusMsg(StatusAuthorizing),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
@@ -198,14 +200,14 @@ func TestChargeBack(t *testing.T) {
 	})
 
 	t.Run("should not indicate chargeback when threshold time is over", func(t *testing.T) {
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      originID,
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now().Add(-11 * time.Second),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 			2: {
 				ID:                   2,
@@ -213,12 +215,12 @@ func TestChargeBack(t *testing.T) {
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusAuthorizing),
+				Status:               ToStatusMsg(StatusAuthorizing),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
@@ -238,14 +240,14 @@ func TestAuthorize(t *testing.T) {
 		destinationID := uint64(87)
 		amount := uint64(1000)
 
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      originID,
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Date(2020, time.March, 10, 7, 0, 0, 0, time.UTC),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 			2: {
 				ID:                   2,
@@ -253,137 +255,137 @@ func TestAuthorize(t *testing.T) {
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusCreated),
+				Status:               ToStatusMsg(StatusCreated),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
-		origin := &Account{
+		origin := &app.Account{
 			ID:      originID,
 			Balance: 5000,
 		}
-		destination := &Account{
+		destination := &app.Account{
 			ID:      destinationID,
 			Balance: 9000,
 		}
-		got := store.authorizeTransfer(origin, destination, amount, 2)
+		got := store.AuthorizeTransfer(origin, destination, amount, 2)
 
 		gotStatus := store.dataStorage[2].Status
-		wantStatus := toStatusMsg(StatusAuthorized)
+		wantStatus := ToStatusMsg(StatusAuthorized)
 
-		assertError(t, got, nil)
-		assertString(t, gotStatus, wantStatus)
+		app.AssertError(t, got, nil)
+		app.AssertString(t, gotStatus, wantStatus)
 	})
 
 	t.Run("should return ErrInvalidAmount when amount to be transferred is zero", func(t *testing.T) {
 		var amount uint64 = 0
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      207,
 				AccountDestinationID: 986,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusCreated),
+				Status:               ToStatusMsg(StatusCreated),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
-		origin := &Account{
+		origin := &app.Account{
 			ID:      207,
 			Balance: 5000,
 		}
-		destination := &Account{
+		destination := &app.Account{
 			ID:      986,
 			Balance: 9000,
 		}
 
 		want := ErrInvalidAmount
-		got := store.authorizeTransfer(origin, destination, amount, 1)
+		got := store.AuthorizeTransfer(origin, destination, amount, 1)
 
 		gotStatus := store.dataStorage[1].Status
-		wantStatus := toStatusMsg(StatusNotAuthorized)
+		wantStatus := ToStatusMsg(StatusNotAuthorized)
 
-		assertError(t, got, want)
-		assertString(t, gotStatus, wantStatus)
+		app.AssertError(t, got, want)
+		app.AssertString(t, gotStatus, wantStatus)
 	})
 
 	t.Run("should return ErrSameID when origin and destination account ids are the same", func(t *testing.T) {
 		amount := uint64(4000)
 
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      207,
 				AccountDestinationID: 207,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusCreated),
+				Status:               ToStatusMsg(StatusCreated),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
-		acc := &Account{
+		acc := &app.Account{
 			ID: 207,
 		}
 
 		want := ErrSameID
-		got := store.authorizeTransfer(acc, acc, amount, 1)
+		got := store.AuthorizeTransfer(acc, acc, amount, 1)
 
 		gotStatus := store.dataStorage[1].Status
-		wantStatus := toStatusMsg(StatusNotAuthorized)
+		wantStatus := ToStatusMsg(StatusNotAuthorized)
 
-		assertError(t, got, want)
-		assertString(t, gotStatus, wantStatus)
+		app.AssertError(t, got, want)
+		app.AssertString(t, gotStatus, wantStatus)
 	})
 
 	t.Run("should return ErrInsufficientBalance when origin account balance is insufficient", func(t *testing.T) {
 		amount := uint64(5500)
 
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      207,
 				AccountDestinationID: 986,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusCreated),
+				Status:               ToStatusMsg(StatusCreated),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
-		origin := &Account{
+		origin := &app.Account{
 			ID:      207,
 			Balance: 5000,
 		}
-		destination := &Account{
+		destination := &app.Account{
 			ID:      986,
 			Balance: 9000,
 		}
 		want := ErrInsufficientBalance
-		got := store.authorizeTransfer(origin, destination, amount, 1)
+		got := store.AuthorizeTransfer(origin, destination, amount, 1)
 
 		gotStatus := store.dataStorage[1].Status
-		wantStatus := toStatusMsg(StatusNotAuthorized)
+		wantStatus := ToStatusMsg(StatusNotAuthorized)
 
-		assertError(t, got, want)
-		assertString(t, gotStatus, wantStatus)
+		app.AssertError(t, got, want)
+		app.AssertString(t, gotStatus, wantStatus)
 	})
 
 	t.Run("should return ErrChargeBack when it seems to be a duplicated transfer", func(t *testing.T) {
@@ -391,14 +393,14 @@ func TestAuthorize(t *testing.T) {
 		destinationID := uint64(87)
 		amount := uint64(1000)
 
-		transfers := map[uint64]Transfer{
+		transfers := map[uint64]app.Transfer{
 			1: {
 				ID:                   1,
 				AccountOriginID:      originID,
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusConfirmed),
+				Status:               ToStatusMsg(StatusConfirmed),
 			},
 			2: {
 				ID:                   2,
@@ -406,31 +408,31 @@ func TestAuthorize(t *testing.T) {
 				AccountDestinationID: destinationID,
 				Amount:               amount,
 				CreatedAt:            time.Now(),
-				Status:               toStatusMsg(StatusCreated),
+				Status:               ToStatusMsg(StatusCreated),
 			},
 		}
 
 		store := &TransferStore{
-			maxID:       startingID(len(transfers)),
+			maxID:       app.StartingID(len(transfers)),
 			dataStorage: transfers,
 		}
 
-		origin := &Account{
+		origin := &app.Account{
 			ID:      originID,
 			Balance: 5000,
 		}
-		destination := &Account{
+		destination := &app.Account{
 			ID:      destinationID,
 			Balance: 9000,
 		}
 
 		want := ErrChargeBack
-		got := store.authorizeTransfer(origin, destination, amount, 2)
+		got := store.AuthorizeTransfer(origin, destination, amount, 2)
 
 		gotStatus := store.dataStorage[2].Status
-		wantStatus := toStatusMsg(StatusNotAuthorized)
+		wantStatus := ToStatusMsg(StatusNotAuthorized)
 
-		assertError(t, got, want)
-		assertString(t, gotStatus, wantStatus)
+		app.AssertError(t, got, want)
+		app.AssertString(t, gotStatus, wantStatus)
 	})
 }

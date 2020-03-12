@@ -1,7 +1,8 @@
-package app
+package store
 
 import (
 	"errors"
+	app "github.com/erikacarvalho/stone-challenge"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -36,15 +37,19 @@ var (
 
 type TransferStore struct {
 	maxID       *uint64
-	dataStorage map[uint64]Transfer // The map key is the transfer identifier
+	dataStorage map[uint64]app.Transfer // The map key is the transfer identifier
 }
 
 // NewTransferStore generates a new TransferStore with a starting ID number and
 // returns it.
-func NewTransferStore(startingID *uint64) *TransferStore {
+func NewTransferStore(startingID *uint64, transfers ...app.Transfer) *TransferStore {
+	storage := make(map[uint64]app.Transfer)
+	for _, transfer := range transfers {
+		storage[transfer.ID] = transfer
+	}
 	ns := &TransferStore{
 		maxID:       startingID,
-		dataStorage: make(map[uint64]Transfer),
+		dataStorage: storage,
 	}
 	return ns
 }
@@ -54,21 +59,21 @@ func NewTransferStore(startingID *uint64) *TransferStore {
 // generated ID. It also sets created time to Now and status to Created.
 func (t *TransferStore) CreateTransfer(origin, destination, amount uint64) (id uint64, err error) {
 	newID := atomic.AddUint64(t.maxID, 1)
-	t.dataStorage[newID] = Transfer{
+	t.dataStorage[newID] = app.Transfer{
 		ID:                   newID,
 		AccountOriginID:      origin,
 		AccountDestinationID: destination,
 		Amount:               amount,
 		CreatedAt:            time.Now(),
-		Status:               toStatusMsg(StatusCreated),
+		Status:               ToStatusMsg(StatusCreated),
 	}
 	return newID, nil
 }
 
-// authorizeTransfer checks if it is possible to perform the transfer
+// AuthorizeTransfer checks if it is possible to perform the transfer
 // based on the business rules, and returns error message depending on
 // the outcome.
-func (t *TransferStore) authorizeTransfer(origin, destination *Account, amount, id uint64) error {
+func (t *TransferStore) AuthorizeTransfer(origin, destination *app.Account, amount, id uint64) error {
 	changeStatus(t, id, StatusAuthorizing)
 
 	if origin.ID == destination.ID {
@@ -104,7 +109,7 @@ func (t *TransferStore) isChargeBack(origin, destination, amount uint64) bool {
 		if transfer.AccountOriginID == origin &&
 			transfer.AccountDestinationID == destination &&
 			transfer.Amount == amount &&
-			transfer.Status == toStatusMsg(StatusConfirmed) &&
+			transfer.Status == ToStatusMsg(StatusConfirmed) &&
 			now.Before(treshold) {
 			return true
 		}
@@ -124,8 +129,8 @@ func (t *TransferStore) Cancel(id uint64) {
 
 // ListAllTransfers returns all transfers from the store sorted by ID,
 // and an error if there are no transfers to be listed.
-func (t *TransferStore) ListAllTransfers() ([]Transfer, error) {
-	var transfers []Transfer
+func (t *TransferStore) ListAllTransfers() ([]app.Transfer, error) {
+	var transfers []app.Transfer
 	for _, v := range t.dataStorage {
 		transfers = append(transfers, v)
 	}
@@ -143,20 +148,20 @@ func (t *TransferStore) ListAllTransfers() ([]Transfer, error) {
 
 // GetTransfer returns a Transfer based on a given ID, and an error if
 // no transfer with given ID is found.
-func (t *TransferStore) GetTransfer(ID uint64) (Transfer, error) {
+func (t *TransferStore) GetTransfer(ID uint64) (app.Transfer, error) {
 	transfer, ok := t.dataStorage[ID]
 	if !ok {
-		return Transfer{}, ErrTransferNotFound
+		return app.Transfer{}, ErrTransferNotFound
 	}
 	return transfer, nil
 }
 
 func changeStatus(a *TransferStore, ID uint64, statusCode int) {
 	transfer := a.dataStorage[ID]
-	transfer.Status = toStatusMsg(statusCode)
+	transfer.Status = ToStatusMsg(statusCode)
 	a.dataStorage[ID] = transfer
 }
 
-func toStatusMsg(code int) string {
+func ToStatusMsg(code int) string {
 	return statusMessage[code]
 }
