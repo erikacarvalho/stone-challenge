@@ -10,7 +10,7 @@ func TestCreateAccount(t *testing.T) {
 		store := NewAccountStore(startingID(0))
 
 		want := uint64(1)
-		got := store.CreateAccount("", "", 0)
+		got, _ := store.CreateAccount("", "", 0)
 
 		assertUint64(t, got, want)
 	})
@@ -19,7 +19,7 @@ func TestCreateAccount(t *testing.T) {
 		store := NewAccountStore(startingID(90))
 
 		want := uint64(91)
-		got := store.CreateAccount("", "", 0)
+		got, _ := store.CreateAccount("", "", 0)
 
 		assertUint64(t, got, want)
 	})
@@ -29,11 +29,11 @@ func TestGetBalance(t *testing.T) {
 	t.Run("should return account balance", func(t *testing.T) {
 		store := NewAccountStore(startingID(7690))
 
-		newAccID := store.CreateAccount("", "", 10)
-		accBalance, _ := store.GetBalance(newAccID)
+		newAccountID, _ := store.CreateAccount("", "", 10)
+		accountBalance, _ := store.GetBalance(newAccountID)
 
 		want := uint64(10)
-		got := accBalance
+		got := accountBalance
 
 		assertUint64(t, got, want)
 	})
@@ -49,7 +49,7 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestListAllAccounts(t *testing.T) {
-	accs := map[uint64]Account{
+	accounts := map[uint64]Account{
 		1: {
 			ID:        1,
 			Name:      "Talita Barreto Coelho",
@@ -74,15 +74,15 @@ func TestListAllAccounts(t *testing.T) {
 	}
 
 	store := &AccountStore{
-		maxID:       startingID(len(accs)),
-		dataStorage: accs,
+		maxID:       startingID(len(accounts)),
+		dataStorage: accounts,
 	}
 
 	t.Run("should return slice with all created accounts", func(t *testing.T) {
-		accsList, _ := store.ListAllAccounts()
+		accountsList, _ := store.ListAllAccounts()
 
-		for i, account := range accsList {
-			want := accs[uint64(i+1)]
+		for i, account := range accountsList {
+			want := accounts[uint64(i+1)]
 			got := account
 			if got != want {
 				t.Errorf("got %q; want %q", got, want)
@@ -91,9 +91,9 @@ func TestListAllAccounts(t *testing.T) {
 	})
 
 	t.Run("should return an ordered list of accounts", func(t *testing.T) {
-		accsList, _ := store.ListAllAccounts()
+		accountsList, _ := store.ListAllAccounts()
 
-		for i, account := range accsList {
+		for i, account := range accountsList {
 			want := store.dataStorage[uint64(i+1)].ID
 			got := account.ID
 			if got != want {

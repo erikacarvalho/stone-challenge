@@ -26,7 +26,7 @@ func NewAccountStore(startingID *uint64) *AccountStore {
 }
 
 // CreateAccount is a method that creates an account and returns its ID.
-func (a *AccountStore) CreateAccount(name, CPF string, balance uint64) uint64 {
+func (a *AccountStore) CreateAccount(name, CPF string, balance uint64) (ID uint64, err error) {
 	newID := atomic.AddUint64(a.maxID, 1)
 	a.dataStorage[newID] = Account{
 		ID:        newID,
@@ -35,7 +35,7 @@ func (a *AccountStore) CreateAccount(name, CPF string, balance uint64) uint64 {
 		Balance:   balance,
 		CreatedAt: time.Now(),
 	}
-	return newID
+	return newID, nil
 }
 
 // ListAllAccounts returns all accounts from the account store sorted.

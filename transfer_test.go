@@ -30,7 +30,7 @@ func TestCreateTransfer(t *testing.T) {
 		assertUint64(t, gotAmount, wantAmount)
 	})
 
-	t.Run("should create new transfer with status code StatusCreated", func(t *testing.T) {
+	t.Run("should create new transfer with status code Created", func(t *testing.T) {
 		want := toStatusMsg(StatusCreated)
 		got := store.dataStorage[newTransferID].Status
 
@@ -39,7 +39,7 @@ func TestCreateTransfer(t *testing.T) {
 }
 
 func TestConfirm(t *testing.T) {
-	t.Run("should change transfer status to StatusConfirmed", func(t *testing.T) {
+	t.Run("should change transfer status to Confirmed", func(t *testing.T) {
 		store := NewTransferStore(startingID(93))
 
 		newID, _ := store.CreateTransfer(15, 21, 7800)
